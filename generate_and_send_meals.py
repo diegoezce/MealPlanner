@@ -329,10 +329,26 @@ def main():
 
     # Initialize Anthropic client with explicit API key
     api_key = os.environ.get("ANTHROPIC_API_KEY")
+
+    # If not in env, try to load from ~/.zshrc (for scheduled tasks)
     if not api_key:
-        print("❌ ERROR: ANTHROPIC_API_KEY environment variable not set")
+        import subprocess
+        try:
+            result = subprocess.run(
+                ['bash', '-c', 'source ~/.zshrc && echo $ANTHROPIC_API_KEY'],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            api_key = result.stdout.strip()
+        except:
+            pass
+
+    if not api_key:
+        print("❌ ERROR: ANTHROPIC_API_KEY not found")
         print("   Set it with: export ANTHROPIC_API_KEY='your-api-key'")
         return
+
     client = Anthropic(api_key=api_key)
 
     # Read sheet
