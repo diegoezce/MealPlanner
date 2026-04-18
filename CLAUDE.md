@@ -26,20 +26,26 @@ Google Sheet (status: Done/Error)
 
 ## Configuration
 
-**Scheduled Task**: `weekly-meal-plan-remote`
+**Scheduled Task**: `weekly-meal-plan-remote` (stored in `~/.claude/scheduled-tasks/`)
 - Schedule: `0 8 * * 1` (Mondays 8 AM)
 - Model: Claude Haiku (cost: ~$0.007/plan)
 - Auth: diegoezce@gmail.com (Gmail), Google Sheets
+
+**Documentation**: See [tasks/weekly-meal-plan.md](tasks/weekly-meal-plan.md)
 
 **Survey Sheet**: https://docs.google.com/spreadsheets/d/1O6DC-6u5Y642c1v8LkwSYkj9lBGDy_szSLnM0PfucFM/edit
 
 ## Common Tasks
 
-**Run manually**: Scheduled → weekly-meal-plan-remote → "Run now"
+**Check task status**: `./scripts/deploy-scheduled-task.sh status`
 
-**Regenerate for one row**: Clear Status column → Run task
+**View task documentation**: `./scripts/deploy-scheduled-task.sh docs`
 
-**Modify prompt**: Edit task in Scheduled section
+**Run manually**: Claude Code → Scheduled → weekly-meal-plan-remote → "Run now"
+
+**Regenerate for one row**: Clear Status column in Google Sheet → Run task
+
+**Modify task**: Edit in Claude Code → Scheduled → weekly-meal-plan-remote (or update prompt in tasks/weekly-meal-plan.md)
 
 ## Generation Rules
 
