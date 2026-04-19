@@ -1,12 +1,12 @@
 """
 Weekly meal plan generator and sender.
-Reads Google Sheet, generates plans with Claude API, sends emails via Gmail API.
+Reads Google Sheet, generates plans with Claude API, sends emails via Gmail SMTP.
 
 Usage: python3 generate_and_send_meals.py
 """
 import os
 import json
-import base64
+import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from datetime import datetime
@@ -267,21 +267,43 @@ CRITICAL: Return ONLY raw JSON (zero markdown, zero code blocks, zero backticks)
     return plan_data
 
 
-def send_email_gmail(to_email: str, subject: str, html_body: str, creds) -> bool:
-    """Send email via Gmail API using service account credentials."""
+def send_email_smtp(to_email: str, subject: str, html_body: str) -> bool:
+    """Send email via Gmail SMTP using app password."""
+    from_email = "diegoezce@gmail.com"
+    app_password = os.environ.get("GMAIL_APP_PASSWORD")
+
+    if not app_password:
+        # Try loading from ~/.zshrc for scheduled tasks
+        import subprocess
+        try:
+            result = subprocess.run(
+                ["bash", "-c", "source ~/.zshrc && echo $GMAIL_APP_PASSWORD"],
+                capture_output=True, text=True, timeout=5
+            )
+            app_password = result.stdout.strip()
+        except Exception:
+            pass
+
+    if not app_password:
+        print("❌ GMAIL_APP_PASSWORD not found")
+        return False
+
     try:
-        gmail = build("gmail", "v1", credentials=creds)
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
         msg["To"] = to_email
-        msg["From"] = creds.service_account_email
+        msg["From"] = from_email
         msg.attach(MIMEText(html_body, "html"))
-        raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
-        gmail.users().messages().send(userId="me", body={"raw": raw}).execute()
+
+        with smtplib.SMTP("smtp.gmail.com", 587) as server:
+            server.starttls()
+            server.login(from_email, app_password)
+            server.sendmail(from_email, to_email, msg.as_string())
+
         print(f"✅ Email sent to {to_email}")
         return True
     except Exception as e:
-        print(f"❌ Gmail API failed: {e}")
+        print(f"❌ Gmail SMTP failed: {e}")
         return False
 
 
@@ -436,7 +458,7 @@ def main():
             # Build and send email
             subject = f"🍽️ Tu plan de comidas semanal - {submission_id}"
             html_body = build_html_email(plan)
-            success = send_email_gmail(to_email, subject, html_body, creds)
+            success = send_email_smtp(to_email, subject, html_body)
 
             if success:
                 # Update sheet
