@@ -1,12 +1,14 @@
 """
 Weekly meal plan generator and sender.
-Reads Google Sheet, generates plans with Claude API, sends emails via Mailjet.
+Reads Google Sheet, generates plans with Claude API, sends emails via Gmail API.
 
 Usage: python3 generate_and_send_meals.py
 """
 import os
 import json
-import requests
+import base64
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from datetime import datetime
 
 from google.oauth2 import service_account
@@ -265,37 +267,21 @@ CRITICAL: Return ONLY raw JSON (zero markdown, zero code blocks, zero backticks)
     return plan_data
 
 
-def send_email_mailjet(to_email: str, subject: str, html_body: str) -> bool:
-    """Send email via Mailjet API."""
-    MAILJET_API_KEY = "4dcbef529810c682b8d17535a8e3e651"
-    MAILJET_API_SECRET = "a74f1469aeb2b4c8bc29c468385fbc31"
-
-    url = "https://api.mailjet.com/v3.1/send"
-    headers = {"Content-Type": "application/json"}
-
-    data = {
-        "Messages": [
-            {
-                "From": {"Email": "diegoezce@gmail.com", "Name": "Meal Planner"},
-                "To": [{"Email": to_email}],
-                "Subject": subject,
-                "HTMLPart": html_body,
-            }
-        ]
-    }
-
+def send_email_gmail(to_email: str, subject: str, html_body: str, creds) -> bool:
+    """Send email via Gmail API using service account credentials."""
     try:
-        response = requests.post(
-            url,
-            json=data,
-            auth=(MAILJET_API_KEY, MAILJET_API_SECRET),
-            timeout=10,
-        )
-        response.raise_for_status()
+        gmail = build("gmail", "v1", credentials=creds)
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["To"] = to_email
+        msg["From"] = creds.service_account_email
+        msg.attach(MIMEText(html_body, "html"))
+        raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
+        gmail.users().messages().send(userId="me", body={"raw": raw}).execute()
         print(f"✅ Email sent to {to_email}")
         return True
     except Exception as e:
-        print(f"❌ Mailjet API failed: {e}")
+        print(f"❌ Gmail API failed: {e}")
         return False
 
 
@@ -450,7 +436,7 @@ def main():
             # Build and send email
             subject = f"🍽️ Tu plan de comidas semanal - {submission_id}"
             html_body = build_html_email(plan)
-            success = send_email_mailjet(to_email, subject, html_body)
+            success = send_email_gmail(to_email, subject, html_body, creds)
 
             if success:
                 # Update sheet
