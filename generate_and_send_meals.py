@@ -276,7 +276,9 @@ def send_email_mailjet(to_email: str, subject: str, html_body: str) -> bool:
                 "From": {"Email": "info@goplanify.com", "Name": "Goplanify"},
                 "To": [{"Email": to_email}],
                 "Subject": subject,
+                "TextPart": "",
                 "HTMLPart": html_body,
+                "Headers": {"X-Transport": "mailjet_api"},
             }
         ]
     }

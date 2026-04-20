@@ -25,7 +25,9 @@ data = {
             "From": {"Email": "info@goplanify.com", "Name": "Goplanify"},
             "To": [{"Email": TO_EMAIL}],
             "Subject": "✅ Test Meal Planner - Goplanify",
+            "TextPart": "",
             "HTMLPart": TEST_HTML,
+            "Headers": {"X-Transport": "mailjet_api"},
         }
     ]
 }
