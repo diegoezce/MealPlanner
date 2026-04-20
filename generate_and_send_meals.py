@@ -15,6 +15,7 @@ from anthropic import Anthropic
 
 CREDS_FILE = os.path.expanduser("~/.claude/credentials/mealplanner-gcp.json")
 SPREADSHEET_ID = "1O6DC-6u5Y642c1v8LkwSYkj9lBGDy_szSLnM0PfucFM"
+GOOGLE_CREDENTIALS_JSON = os.environ.get("GOOGLE_CREDENTIALS_JSON")  # base64-encoded JSON for Railway
 
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -266,8 +267,8 @@ CRITICAL: Return ONLY raw JSON (zero markdown, zero code blocks, zero backticks)
 
 def send_email_mailjet(to_email: str, subject: str, html_body: str) -> bool:
     """Send email via Mailjet using goplanify.com verified sender."""
-    MAILJET_API_KEY = "86e75a4aec95416b39d15f8acb0b037c"
-    MAILJET_API_SECRET = "d420a490c00c0f983716e803b0e5272c"
+    MAILJET_API_KEY = os.environ.get("MAILJET_API_KEY", "86e75a4aec95416b39d15f8acb0b037c")
+    MAILJET_API_SECRET = os.environ.get("MAILJET_API_SECRET", "d420a490c00c0f983716e803b0e5272c")
 
     data = {
         "Messages": [
@@ -326,10 +327,13 @@ def update_sheet_cell(sheets, row_idx: int, col_letter: str, value: str):
 
 
 def main():
-    # Authenticate
-    creds = service_account.Credentials.from_service_account_file(
-        CREDS_FILE, scopes=SCOPES
-    )
+    # Authenticate — env var (Railway) takes priority over local file
+    if GOOGLE_CREDENTIALS_JSON:
+        import base64
+        creds_info = json.loads(base64.b64decode(GOOGLE_CREDENTIALS_JSON).decode())
+        creds = service_account.Credentials.from_service_account_info(creds_info, scopes=SCOPES)
+    else:
+        creds = service_account.Credentials.from_service_account_file(CREDS_FILE, scopes=SCOPES)
     sheets = build("sheets", "v4", credentials=creds)
 
     # Initialize Anthropic client with explicit API key
