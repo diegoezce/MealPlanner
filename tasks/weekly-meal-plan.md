@@ -13,60 +13,48 @@ Process meal plan requests from Google Sheet, generate personalized 7-day LatAm 
 
 https://docs.google.com/spreadsheets/d/1O6DC-6u5Y642c1v8LkwSYkj9lBGDy_szSLnM0PfucFM/edit
 
-## Recipe Bank (Rotates Weekly)
+## Recipe Generation (Personalized, No Fixed Bank)
 
-**Breakfasts** (rotate):
-- Tostadas con manteca y mermelada + leche con cacao
-- Tostadas con queso cremoso + jugo de naranja
-- Cereales con leche + banana
-- Medialunas caseras + té con leche
-- Huevos revueltos + pan + manteca
-- Pancakes caseros + mermelada + jugo
-- Omelette con queso + tostadas
+Recipes are **generated dynamically** by Claude for each family based on:
 
-**Lunches/Viandas** (rotate to avoid repeat in 4 weeks):
-- Fideos con salsa de tomate y queso
-- Arroz blanco + milanesa + ensalada
-- Fideos fritos con aceite, ajo, orégano
-- Arroz con pollo
-- Pastas al horno con queso y jamón
-- Lentejas con verduras + arroz
-- Choclo con queso fundido
-- Cazuela de verduras con carne picada
-- Tallarín con salsa bolognesa
+**Dietary Adaptations:**
+- **Celíaco / Gluten-free**: Automatically uses GF alternatives (rice, corn, quinoa bases instead of wheat)
+- **Diabético**: Low GI foods, controlled carbs, no refined sugars
+- **Vegetariano/Vegana**: Adapts proteins (eggs, cheese, legumes, nuts, tofu)
+- **Alergias específicas**: Avoids mentioned allergens
+- **Saludable/Liviana**: Grilled, baked, steamed (no fried foods)
+- **Casera clásica**: Comfort-food style, familiar flavors
 
-**Dinners** (simple & quick, <30 min):
-- Milanesas de ternera + puré + ensalada
-- Milanesas de pollo + papas bastón + ensalada
-- Empanadas de carne al horno + ensalada
-- Fideos con salsa blanca
-- Polenta con salsa de carne
-- Omelette de queso + pan tostado
-- Hamburguesas caseras + papas
-- Picadillo con puré
-- Pollo guisado + verduras
-- Choclo con manteca + ensalada
-- Tartas de verdura (acelga, espinaca, cebolla)
+**Generation Quality:**
+- LatAm style (Argentina, Mexico, Colombia, Peru)
+- Infinite variety (no static recipe rotation)
+- Never repeats from previous week
+- Reuses ingredients to minimize shopping list
+- Adapts portion sizes for family
+- Respects cooking time constraints
+- Picky-eater friendly when needed
 
 ## Workflow
 
 1. **Read Google Sheet** → identify rows with empty Status
 2. **Extract parameters**: family_size, ages, restrictions, picky_eaters, cooking_time, preferences, contact_email
-3. **Check "Last Recipes" column** for previous week's meals
-4. **Generate meal plan**:
-   - Use different recipes than "Last Recipes"
-   - Adapt to picky eaters (simple, mild)
-   - Reuse ingredients
-   - Keep <20 min if low cooking time
-5. **Send HTML email** from diegoezce@gmail.com with:
-   - Green header with personalization
+3. **Check "Last Recipes" column** to avoid repeating last week's meals
+4. **Generate meal plan** with Claude Haiku:
+   - Reads all family constraints (dietary, health, time, preferences)
+   - Generates 21 ORIGINAL recipes (7 days × 3 meals)
+   - Respects dietary needs: gluten-free, low GI, vegetarian, allergies
+   - Prioritizes health preferences: healthy, light, home-style
+   - Reuses ingredients strategically
+   - Never repeats last week's meals
+5. **Send HTML email** from Mailjet (info@goplanify.com) with:
+   - Personalized greeting with family size/ages
    - Styled 7-day meal table
-   - Shopping list by category (2-column grid)
+   - Smart shopping list (categorized)
    - Meal prep tips
-   - Insights summary
+   - Nutritional insights (prep time, picky-friendly count, ingredient reuse, health options)
 6. **Update sheet**:
    - Write "Done" in Status
-   - Write meal names in "Last Recipes" (comma-separated)
+   - Write all 21 meal names in "Last Recipes" (comma-separated)
    - Write "Error: [reason]" if failed
 
 ## Email Template
@@ -84,9 +72,13 @@ HTML format with:
 
 ## Monitoring
 
-- Check diegoezce@gmail.com inbox for sent emails
+- Check inbox (info@goplanify.com via Mailjet) for sent emails
 - Review Google Sheet Status column for "Done" or "Error"
-- Check "Last Recipes" column to verify recipes rotated
+- Check "Last Recipes" column to verify:
+  - Recipes are different from previous week
+  - Restrictions are respected (no gluten if celiac, etc)
+  - Diversity of recipes (not repetitive)
+- Verify insights reflect actual plan (picky-friendly count, prep time, health options)
 - Use Claude Code notifications for task completion
 
 ## Updating the Task
