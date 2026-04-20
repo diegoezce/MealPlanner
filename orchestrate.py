@@ -156,7 +156,8 @@ def send_email_mailjet(to_email: str, subject: str, html_body: str) -> bool:
     try:
         r = requests.post(
             "https://api.mailjet.com/v3.1/send",
-            auth=("86e75a4aec95416b39d15f8acb0b037c", "d420a490c00c0f983716e803b0e5272c"),
+            auth=(os.environ.get("MAILJET_API_KEY", "86e75a4aec95416b39d15f8acb0b037c"),
+                  os.environ.get("MAILJET_API_SECRET", "d420a490c00c0f983716e803b0e5272c")),
             json=data,
             timeout=15,
         )
