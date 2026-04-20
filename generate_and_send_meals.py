@@ -15,7 +15,6 @@ from anthropic import Anthropic
 
 CREDS_FILE = os.path.expanduser("~/.claude/credentials/mealplanner-gcp.json")
 SPREADSHEET_ID = "1O6DC-6u5Y642c1v8LkwSYkj9lBGDy_szSLnM0PfucFM"
-GOOGLE_CREDENTIALS_JSON = os.environ.get("GOOGLE_CREDENTIALS_JSON")  # base64-encoded JSON for Railway
 
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -40,40 +39,12 @@ SHOPPING_NAMES = {
     "other": "Otros",
 }
 
-RECIPE_BANK = """
-**LatAm Breakfast Options** (rotate weekly, vary each week):
-- Tostadas con manteca y mermelada + leche con cacao
-- Tostadas con queso cremoso + jugo de naranja
-- Cereales con leche + banana
-- Medialunas caseras + té con leche
-- Huevos revueltos + pan + manteca
-- Pancakes caseros + mermelada + jugo
-- Omelette con queso + tostadas
-
-**LatAm Lunch/Vianda Options** (rotate to never repeat in 4 weeks):
-- Fideos con salsa de tomate y queso rallado
-- Arroz blanco + milanesa frita + ensalada
-- Fideos fritos con aceite, ajo y orégano
-- Arroz con pollo (vianda)
-- Pastas al horno con queso y jamón
-- Lentejas con verduras + arroz
-- Choclo con queso fundido
-- Cazuela de verduras con carne picada
-- Tallarín con salsa bolognesa
-
-**LatAm Dinner Options** (simple & quick, <30 min):
-- Milanesas de ternera + puré + ensalada
-- Milanesas de pollo + papas bastón + ensalada
-- Empanadas de carne al horno + ensalada
-- Fideos con salsa blanca
-- Polenta con salsa de carne
-- Omelette de queso + pan tostado
-- Hamburguesas caseras + papas
-- Picadillo con puré
-- Milanesa + fideos
-- Pollo guisado + verduras
-- Choclo con manteca + ensalada
-- Tartas de verdura (acelga, espinaca, cebolla)
+RECIPE_GUIDELINES = """
+**Cooking Style Examples** (adapt to dietary needs):
+- LatAm: Argentine, Mexican, Colombian, Peruvian cuisine
+- Proteins: chicken, beef, fish, eggs, legumes
+- Base: rice, pasta, potatoes, bread, corn
+- Cooking methods: grilled, baked, boiled, steamed, sautéed (not fried)
 """
 
 
@@ -188,34 +159,63 @@ def generate_meal_plan(client: Anthropic, row_data: dict, last_recipes: str) -> 
 
     avoid_recipes = ""
     if last_recipes:
-        avoid_recipes = f"\n\n**IMPORTANT: Avoid these recipes from last week:**\n{last_recipes}"
+        avoid_recipes = f"\n**IMPORTANT: Never repeat these meals from last week:**\n{last_recipes}"
+
+    # Interpret dietary restrictions
+    dietary_notes = ""
+    if restrictions:
+        restrictions_lower = restrictions.lower()
+        if "celiaco" in restrictions_lower or "sin gluten" in restrictions_lower or "gluten-free" in restrictions_lower:
+            dietary_notes += "\n- All recipes must be GLUTEN-FREE (no wheat, pasta made from regular flour)"
+        if "diabetico" in restrictions_lower or "diabetic" in restrictions_lower:
+            dietary_notes += "\n- Focus on LOW GLYCEMIC INDEX foods, avoid refined sugars and white carbs"
+        if "vegetarian" in restrictions_lower or "vegetariana" in restrictions_lower:
+            dietary_notes += "\n- Only vegetarian proteins (eggs, cheese, legumes, nuts)"
+        if "vegana" in restrictions_lower or "vegan" in restrictions_lower:
+            dietary_notes += "\n- Only vegan proteins (legumes, nuts, soy, seeds)"
+        if "alergia" in restrictions_lower or "allergy" in restrictions_lower or "alérgico" in restrictions_lower:
+            dietary_notes += f"\n- Avoid common allergens mentioned: {restrictions}"
+        else:
+            dietary_notes += f"\n- Restrictions: {restrictions}"
+
+    health_preference = ""
+    if preferences:
+        preferences_lower = preferences.lower()
+        if "saludable" in preferences_lower or "healthy" in preferences_lower or "liviana" in preferences_lower or "light" in preferences_lower:
+            health_preference = "\n- PRIORITIZE HEALTHY OPTIONS: grilled, baked, steamed (avoid fried foods, excessive oils, fast food style)"
+        if "casera" in preferences_lower or "home-style" in preferences_lower:
+            health_preference += "\n- Focus on homemade, comfort-food style LatAm recipes"
 
     prompt = f"""Generate a personalized 7-day LatAm meal plan in JSON format.
 
-Family size: {family_size} people
-Ages: {ages}
-Restrictions: {restrictions}
-Picky eaters: {picky_eaters}
-Cooking time: {cooking_time}
-Preferences: {preferences}
+FAMILY PROFILE:
+- Size: {family_size} people
+- Ages: {ages}
+- Picky eaters: {picky_eaters}
+- Available cooking time: {cooking_time}{dietary_notes}{health_preference}
 
-{RECIPE_BANK}
+{RECIPE_GUIDELINES}
 
 {avoid_recipes}
 
-Rules:
-- Use ONLY LatAm recipes (Argentina, Mexico, Colombia, Peru style)
-- Adapt portion sizes for {family_size} people
-- Keep meals under 20 minutes if cooking time is low
-- Vary recipes: no repeats within the 7 days
-- Reuse ingredients across meals
-- Adapt meals for picky eaters: simple, mild, familiar
+GENERATION RULES:
+1. Create ORIGINAL recipes adapted to their specific dietary/health needs
+2. Each recipe must respect all restrictions and preferences
+3. For celiac: use gluten-free alternatives
+4. For diabetic: low GI foods, controlled carbs
+5. For picky eaters: simple, mild, familiar flavors
+6. Keep meals under 20 minutes if cooking time is limited
+7. No recipe repeats within the 7 days
+8. Reuse ingredients across meals to minimize shopping list
+9. Include portion sizes appropriate for {family_size} people
+10. All recipes should be authentic LatAm style (Argentina, Mexico, Colombia, Peru)
 
-CRITICAL: Return ONLY raw JSON (zero markdown, zero code blocks, zero backticks). Start immediately with {{ and end with }}.
+CRITICAL: Return ONLY raw JSON (zero markdown, zero code blocks, zero backticks, zero extra text). Start immediately with {{ and end with }}. Each recipe is a SHORT string (max 8 words).
 
+Example format (follow exactly):
 {{
   "meal_plan": {{
-    "monday": {{"breakfast": "...", "lunch": "...", "dinner": "..."}},
+    "monday": {{"breakfast": "Huevos revueltos con pan tostado", "lunch": "Arroz con pollo y verduras", "dinner": "Pechuga a la parrilla con papas"}},
     "tuesday": {{"breakfast": "...", "lunch": "...", "dinner": "..."}},
     "wednesday": {{"breakfast": "...", "lunch": "...", "dinner": "..."}},
     "thursday": {{"breakfast": "...", "lunch": "...", "dinner": "..."}},
@@ -223,22 +223,9 @@ CRITICAL: Return ONLY raw JSON (zero markdown, zero code blocks, zero backticks)
     "saturday": {{"breakfast": "...", "lunch": "...", "dinner": "..."}},
     "sunday": {{"breakfast": "...", "lunch": "...", "dinner": "..."}}
   }},
-  "shopping_list": {{
-    "produce": ["item1", "item2"],
-    "proteins": ["item1"],
-    "dairy": ["item1"],
-    "pantry": ["item1"],
-    "frozen": [],
-    "other": []
-  }},
-  "meal_prep_tips": ["tip1", "tip2", "tip3"],
-  "key_insights": {{
-    "avg_prep_time_mins": 20,
-    "picky_friendly_meals": 18,
-    "ingredient_reuse_count": 8,
-    "healthier_options": 3,
-    "budget_notes": "Budget-friendly plan with seasonal ingredients"
-  }}
+  "shopping_list": {{"produce": ["tomate", "cebolla"], "proteins": ["pollo"], "dairy": ["queso"], "pantry": ["arroz"], "frozen": [], "other": []}},
+  "meal_prep_tips": ["Prep vegetables on Sunday", "Cook rice in bulk"],
+  "key_insights": {{"avg_prep_time_mins": 25, "picky_friendly_meals": 18, "ingredient_reuse_count": 8, "healthier_options": 19, "budget_notes": "Seasonal ingredients"}}
 }}"""
 
     message = client.messages.create(
@@ -267,8 +254,8 @@ CRITICAL: Return ONLY raw JSON (zero markdown, zero code blocks, zero backticks)
 
 def send_email_mailjet(to_email: str, subject: str, html_body: str) -> bool:
     """Send email via Mailjet using goplanify.com verified sender."""
-    MAILJET_API_KEY = os.environ.get("MAILJET_API_KEY", "86e75a4aec95416b39d15f8acb0b037c")
-    MAILJET_API_SECRET = os.environ.get("MAILJET_API_SECRET", "d420a490c00c0f983716e803b0e5272c")
+    MAILJET_API_KEY = "86e75a4aec95416b39d15f8acb0b037c"
+    MAILJET_API_SECRET = "d420a490c00c0f983716e803b0e5272c"
 
     data = {
         "Messages": [
@@ -327,13 +314,10 @@ def update_sheet_cell(sheets, row_idx: int, col_letter: str, value: str):
 
 
 def main():
-    # Authenticate — env var (Railway) takes priority over local file
-    if GOOGLE_CREDENTIALS_JSON:
-        import base64
-        creds_info = json.loads(base64.b64decode(GOOGLE_CREDENTIALS_JSON).decode())
-        creds = service_account.Credentials.from_service_account_info(creds_info, scopes=SCOPES)
-    else:
-        creds = service_account.Credentials.from_service_account_file(CREDS_FILE, scopes=SCOPES)
+    # Authenticate
+    creds = service_account.Credentials.from_service_account_file(
+        CREDS_FILE, scopes=SCOPES
+    )
     sheets = build("sheets", "v4", credentials=creds)
 
     # Initialize Anthropic client with explicit API key
