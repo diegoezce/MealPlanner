@@ -13,12 +13,29 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from anthropic import Anthropic
 
-CREDS_FILE = os.path.expanduser("~/.claude/credentials/mealplanner-gcp.json")
 SPREADSHEET_ID = "1O6DC-6u5Y642c1v8LkwSYkj9lBGDy_szSLnM0PfucFM"
 
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
 ]
+
+def get_gcp_credentials():
+    """Load GCP credentials from file or environment variable."""
+    creds_file = os.path.expanduser("~/.claude/credentials/mealplanner-gcp.json")
+
+    # Try file first (local development)
+    if os.path.exists(creds_file):
+        return creds_file
+
+    # Try environment variable (Railway/production)
+    creds_json = os.environ.get("GCP_CREDENTIALS")
+    if creds_json:
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            f.write(creds_json)
+            return f.name
+
+    raise ValueError("GCP credentials not found. Set GCP_CREDENTIALS env var or place file at ~/.claude/credentials/mealplanner-gcp.json")
 
 DAY_NAMES = {
     "monday": "Lunes",
@@ -315,9 +332,15 @@ def update_sheet_cell(sheets, row_idx: int, col_letter: str, value: str):
 
 def main():
     # Authenticate
-    creds = service_account.Credentials.from_service_account_file(
-        CREDS_FILE, scopes=SCOPES
-    )
+    try:
+        creds_file = get_gcp_credentials()
+        creds = service_account.Credentials.from_service_account_file(
+            creds_file, scopes=SCOPES
+        )
+    except ValueError as e:
+        print(f"❌ ERROR: {e}")
+        return
+
     sheets = build("sheets", "v4", credentials=creds)
 
     # Initialize Anthropic client with explicit API key
