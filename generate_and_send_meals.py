@@ -266,34 +266,40 @@ CRITICAL: Return ONLY raw JSON (zero markdown, zero code blocks, zero backticks)
 
 
 def send_email_mailjet(to_email: str, subject: str, html_body: str) -> bool:
-    """Send email via Mailjet API."""
-    MAILJET_API_KEY = "4dcbef529810c682b8d17535a8e3e651"
-    MAILJET_API_SECRET = "a74f1469aeb2b4c8bc29c468385fbc31"
-
-    url = "https://api.mailjet.com/v3.1/send"
-    headers = {"Content-Type": "application/json"}
+    """Send email via Mailjet using goplanify.com verified sender."""
+    MAILJET_API_KEY = "86e75a4aec95416b39d15f8acb0b037c"
+    MAILJET_API_SECRET = "d420a490c00c0f983716e803b0e5272c"
 
     data = {
         "Messages": [
             {
-                "From": {"Email": "diegoezce@gmail.com", "Name": "Meal Planner"},
+                "From": {"Email": "info@goplanify.com", "Name": "Goplanify"},
                 "To": [{"Email": to_email}],
                 "Subject": subject,
+                "TextPart": "",
                 "HTMLPart": html_body,
+                "Headers": {"X-Transport": "mailjet_api"},
             }
         ]
     }
 
     try:
         response = requests.post(
-            url,
+            "https://api.mailjet.com/v3.1/send",
             json=data,
             auth=(MAILJET_API_KEY, MAILJET_API_SECRET),
-            timeout=10,
+            timeout=15,
         )
         response.raise_for_status()
-        print(f"✅ Email sent to {to_email}")
-        return True
+        result = response.json()
+        msg_status = result.get("Messages", [{}])[0]
+        if msg_status.get("Status") == "success":
+            print(f"✅ Email sent to {to_email}")
+            return True
+        else:
+            errors = msg_status.get("Errors", [])
+            print(f"❌ Mailjet message error: {errors}")
+            return False
     except Exception as e:
         print(f"❌ Mailjet API failed: {e}")
         return False
