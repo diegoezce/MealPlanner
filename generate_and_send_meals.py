@@ -1,14 +1,12 @@
 """
 Weekly meal plan generator and sender.
-Reads Google Sheet, generates plans with Claude API, sends emails via Gmail SMTP.
+Reads Google Sheet, generates plans with Claude API, sends emails via Mailjet.
 
 Usage: python3 generate_and_send_meals.py
 """
 import os
 import json
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+import requests
 from datetime import datetime
 
 from google.oauth2 import service_account
@@ -267,43 +265,41 @@ CRITICAL: Return ONLY raw JSON (zero markdown, zero code blocks, zero backticks)
     return plan_data
 
 
-def send_email_smtp(to_email: str, subject: str, html_body: str) -> bool:
-    """Send email via Gmail SMTP using app password."""
-    from_email = "diegoezce@gmail.com"
-    app_password = os.environ.get("GMAIL_APP_PASSWORD")
+def send_email_mailjet(to_email: str, subject: str, html_body: str) -> bool:
+    """Send email via Mailjet using goplanify.com verified sender."""
+    MAILJET_API_KEY = "4dcbef529810c682b8d17535a8e3e651"
+    MAILJET_API_SECRET = "a74f1469aeb2b4c8bc29c468385fbc31"
 
-    if not app_password:
-        # Try loading from ~/.zshrc for scheduled tasks
-        import subprocess
-        try:
-            result = subprocess.run(
-                ["bash", "-c", "source ~/.zshrc && echo $GMAIL_APP_PASSWORD"],
-                capture_output=True, text=True, timeout=5
-            )
-            app_password = result.stdout.strip()
-        except Exception:
-            pass
-
-    if not app_password:
-        print("❌ GMAIL_APP_PASSWORD not found")
-        return False
+    data = {
+        "Messages": [
+            {
+                "From": {"Email": "info@goplanify.com", "Name": "Goplanify"},
+                "To": [{"Email": to_email}],
+                "Subject": subject,
+                "HTMLPart": html_body,
+            }
+        ]
+    }
 
     try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["To"] = to_email
-        msg["From"] = from_email
-        msg.attach(MIMEText(html_body, "html"))
-
-        with smtplib.SMTP("smtp.gmail.com", 587) as server:
-            server.starttls()
-            server.login(from_email, app_password)
-            server.sendmail(from_email, to_email, msg.as_string())
-
-        print(f"✅ Email sent to {to_email}")
-        return True
+        response = requests.post(
+            "https://api.mailjet.com/v3.1/send",
+            json=data,
+            auth=(MAILJET_API_KEY, MAILJET_API_SECRET),
+            timeout=15,
+        )
+        response.raise_for_status()
+        result = response.json()
+        msg_status = result.get("Messages", [{}])[0]
+        if msg_status.get("Status") == "success":
+            print(f"✅ Email sent to {to_email}")
+            return True
+        else:
+            errors = msg_status.get("Errors", [])
+            print(f"❌ Mailjet message error: {errors}")
+            return False
     except Exception as e:
-        print(f"❌ Gmail SMTP failed: {e}")
+        print(f"❌ Mailjet API failed: {e}")
         return False
 
 
@@ -458,7 +454,7 @@ def main():
             # Build and send email
             subject = f"🍽️ Tu plan de comidas semanal - {submission_id}"
             html_body = build_html_email(plan)
-            success = send_email_smtp(to_email, subject, html_body)
+            success = send_email_mailjet(to_email, subject, html_body)
 
             if success:
                 # Update sheet
