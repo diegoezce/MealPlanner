@@ -4,9 +4,7 @@ Usage: python3 scripts/send_meal_plan.py
 """
 import os
 import json
-import base64
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+import requests
 
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
@@ -17,7 +15,6 @@ PLAN_FILE = "plan_comidas_1Wk5dxp.json"
 
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/gmail.send",
 ]
 
 DAY_NAMES = {
@@ -146,21 +143,37 @@ def build_html_email(plan: dict) -> str:
     return html
 
 
-def send_email_service_account(to_email: str, subject: str, html_body: str, creds) -> bool:
-    """Send email via Gmail API using service account (requires domain delegation or user OAuth)."""
+def send_email_mailjet(to_email: str, subject: str, html_body: str) -> bool:
+    """Send email via Mailjet using goplanify.com verified sender."""
+    data = {
+        "Messages": [
+            {
+                "From": {"Email": "info@goplanify.com", "Name": "Goplanify"},
+                "To": [{"Email": to_email}],
+                "Subject": subject,
+                "TextPart": "",
+                "HTMLPart": html_body,
+                "Headers": {"X-Transport": "mailjet_api"},
+            }
+        ]
+    }
     try:
-        gmail = build("gmail", "v1", credentials=creds)
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["To"] = to_email
-        msg["From"] = creds.service_account_email
-        msg.attach(MIMEText(html_body, "html"))
-        raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
-        gmail.users().messages().send(userId="me", body={"raw": raw}).execute()
-        print(f"Email sent to {to_email}")
-        return True
+        r = requests.post(
+            "https://api.mailjet.com/v3.1/send",
+            auth=("86e75a4aec95416b39d15f8acb0b037c", "d420a490c00c0f983716e803b0e5272c"),
+            json=data,
+            timeout=15,
+        )
+        r.raise_for_status()
+        msg_status = r.json().get("Messages", [{}])[0]
+        if msg_status.get("Status") == "success":
+            print(f"✅ Email sent to {to_email}")
+            return True
+        else:
+            print(f"❌ Mailjet message error: {msg_status.get('Errors', [])}")
+            return False
     except Exception as e:
-        print(f"Gmail API send failed: {e}")
+        print(f"❌ Mailjet API failed: {e}")
         return False
 
 
@@ -267,7 +280,7 @@ def main():
             html_body = build_html_email(plan)
 
             # Send email
-            success = send_email_service_account(to_email, subject, html_body, creds)
+            success = send_email_mailjet(to_email, subject, html_body)
 
             status = "Done" if success else "Error: email send failed"
             update_sheet_status(sheets, row_idx, status_col_letter, status)
