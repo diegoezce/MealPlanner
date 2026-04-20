@@ -1,0 +1,3 @@
+[deploy]
+startCommand = "python generate_and_send_meals.py"
+cronSchedule = "7 8 * * 1"
