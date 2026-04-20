@@ -5,8 +5,8 @@ Usage: python3 test_email.py [recipient@email.com]
 import sys
 import requests
 
-MAILJET_API_KEY = "4dcbef529810c682b8d17535a8e3e651"
-MAILJET_API_SECRET = "a74f1469aeb2b4c8bc29c468385fbc31"
+MAILJET_API_KEY = "86e75a4aec95416b39d15f8acb0b037c"
+MAILJET_API_SECRET = "d420a490c00c0f983716e803b0e5272c"
 TO_EMAIL = sys.argv[1] if len(sys.argv) > 1 else "diegoezce@gmail.com"
 
 TEST_HTML = """
