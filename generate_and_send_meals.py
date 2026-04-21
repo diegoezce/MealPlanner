@@ -13,7 +13,17 @@ from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from anthropic import Anthropic
 
-CREDS_FILE = os.path.expanduser("~/.claude/credentials/mealplanner-gcp.json")
+# Load credentials: try local file first, then environment variable (Railway)
+_creds_file = os.path.expanduser("~/.claude/credentials/mealplanner-gcp.json")
+if not os.path.exists(_creds_file) and os.environ.get("GCP_CREDENTIALS"):
+    import tempfile
+    _tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
+    _tmp.write(os.environ.get("GCP_CREDENTIALS"))
+    _tmp.close()
+    CREDS_FILE = _tmp.name
+else:
+    CREDS_FILE = _creds_file
+
 SPREADSHEET_ID = "1O6DC-6u5Y642c1v8LkwSYkj9lBGDy_szSLnM0PfucFM"
 
 SCOPES = [
