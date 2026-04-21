@@ -57,11 +57,11 @@ SHOPPING_NAMES = {
 }
 
 RECIPE_GUIDELINES = """
-**Cooking Style Examples** (adapt to dietary needs):
-- LatAm: Argentine, Mexican, Colombian, Peruvian cuisine
-- Proteins: chicken, beef, fish, eggs, legumes
-- Base: rice, pasta, potatoes, bread, corn
-- Cooking methods: grilled, baked, boiled, steamed, sautéed (not fried)
+**Estilos de Cocina** (adaptados a necesidades dietéticas):
+- LatAm: Comida argentina, mexicana, colombiana, peruana
+- Proteínas: pollo, carne, pescado, huevos, legumbres
+- Base: arroz, pasta, papas, pan, choclo
+- Métodos de cocción: a la parrilla, al horno, hervido, al vapor, salteado (sin freír)
 """
 
 
@@ -183,53 +183,53 @@ def generate_meal_plan(client: Anthropic, row_data: dict, last_recipes: str) -> 
     if restrictions:
         restrictions_lower = restrictions.lower()
         if "celiaco" in restrictions_lower or "sin gluten" in restrictions_lower or "gluten-free" in restrictions_lower:
-            dietary_notes += "\n- All recipes must be GLUTEN-FREE (no wheat, pasta made from regular flour)"
+            dietary_notes += "\n- Todas las recetas DEBEN SER SIN GLUTEN (sin trigo, pasta regular, etc.)"
         if "diabetico" in restrictions_lower or "diabetic" in restrictions_lower:
-            dietary_notes += "\n- Focus on LOW GLYCEMIC INDEX foods, avoid refined sugars and white carbs"
+            dietary_notes += "\n- Enfócate en alimentos BAJO ÍNDICE GLUCÉMICO, evita azúcares refinados y carbohidratos blancos"
         if "vegetarian" in restrictions_lower or "vegetariana" in restrictions_lower:
-            dietary_notes += "\n- Only vegetarian proteins (eggs, cheese, legumes, nuts)"
+            dietary_notes += "\n- Solo proteínas vegetarianas (huevos, queso, legumbres, frutos secos)"
         if "vegana" in restrictions_lower or "vegan" in restrictions_lower:
-            dietary_notes += "\n- Only vegan proteins (legumes, nuts, soy, seeds)"
+            dietary_notes += "\n- Solo proteínas veganas (legumbres, frutos secos, soya, semillas)"
         if "alergia" in restrictions_lower or "allergy" in restrictions_lower or "alérgico" in restrictions_lower:
-            dietary_notes += f"\n- Avoid common allergens mentioned: {restrictions}"
+            dietary_notes += f"\n- Evita alérgenos comunes mencionados: {restrictions}"
         else:
-            dietary_notes += f"\n- Restrictions: {restrictions}"
+            dietary_notes += f"\n- Restricciones: {restrictions}"
 
     health_preference = ""
     if preferences:
         preferences_lower = preferences.lower()
         if "saludable" in preferences_lower or "healthy" in preferences_lower or "liviana" in preferences_lower or "light" in preferences_lower:
-            health_preference = "\n- PRIORITIZE HEALTHY OPTIONS: grilled, baked, steamed (avoid fried foods, excessive oils, fast food style)"
+            health_preference = "\n- PRIORIZA OPCIONES SALUDABLES: a la parrilla, al horno, al vapor (evita frituras, exceso de aceite, comida rápida)"
         if "casera" in preferences_lower or "home-style" in preferences_lower:
-            health_preference += "\n- Focus on homemade, comfort-food style LatAm recipes"
+            health_preference += "\n- Enfócate en recetas caseras, estilo comida LatAm tradicional"
 
-    prompt = f"""Generate a personalized 7-day LatAm meal plan in JSON format.
+    prompt = f"""Genera un plan de comidas personalizado de 7 días estilo LatAm en formato JSON.
 
-FAMILY PROFILE:
-- Size: {family_size} people
-- Ages: {ages}
-- Picky eaters: {picky_eaters}
-- Available cooking time: {cooking_time}{dietary_notes}{health_preference}
+PERFIL DE FAMILIA:
+- Cantidad: {family_size} personas
+- Edades: {ages}
+- Come poco: {picky_eaters}
+- Tiempo disponible para cocinar: {cooking_time}{dietary_notes}{health_preference}
 
 {RECIPE_GUIDELINES}
 
 {avoid_recipes}
 
-GENERATION RULES:
-1. Create ORIGINAL recipes adapted to their specific dietary/health needs
-2. Each recipe must respect all restrictions and preferences
-3. For celiac: use gluten-free alternatives
-4. For diabetic: low GI foods, controlled carbs
-5. For picky eaters: simple, mild, familiar flavors
-6. Keep meals under 20 minutes if cooking time is limited
-7. No recipe repeats within the 7 days
-8. Reuse ingredients across meals to minimize shopping list
-9. Include portion sizes appropriate for {family_size} people
-10. All recipes should be authentic LatAm style (Argentina, Mexico, Colombia, Peru)
+REGLAS DE GENERACIÓN:
+1. Crea recetas ORIGINALES adaptadas a sus necesidades dietéticas/salud específicas
+2. Cada receta debe respetar todas las restricciones y preferencias
+3. Para celíaco: usa alternativas sin gluten
+4. Para diabético: alimentos bajos en GI, carbohidratos controlados
+5. Para niños o que comen poco: sabores simples, suaves, familiares
+6. Mantén comidas bajo 20 minutos si el tiempo de cocina es limitado
+7. Sin repetir recetas dentro de los 7 días
+8. Reutiliza ingredientes entre comidas para minimizar lista de compras
+9. Incluye porciones apropiadas para {family_size} personas
+10. Todas las recetas deben ser auténtico estilo LatAm (Argentina, México, Colombia, Perú)
 
-CRITICAL: Return ONLY raw JSON (zero markdown, zero code blocks, zero backticks, zero extra text). Start immediately with {{ and end with }}. Each recipe is a SHORT string (max 8 words).
+CRÍTICO: Retorna SOLO JSON crudo (sin markdown, sin bloques de código, sin acentos graves, sin texto extra). Comienza inmediatamente con {{ y termina con }}. Cada receta es una cadena CORTA (máx 8 palabras).
 
-Example format (follow exactly):
+Formato de ejemplo (sigue exactamente):
 {{
   "meal_plan": {{
     "monday": {{"breakfast": "Huevos revueltos con pan tostado", "lunch": "Arroz con pollo y verduras", "dinner": "Pechuga a la parrilla con papas"}},
@@ -241,8 +241,8 @@ Example format (follow exactly):
     "sunday": {{"breakfast": "...", "lunch": "...", "dinner": "..."}}
   }},
   "shopping_list": {{"produce": ["tomate", "cebolla"], "proteins": ["pollo"], "dairy": ["queso"], "pantry": ["arroz"], "frozen": [], "other": []}},
-  "meal_prep_tips": ["Prep vegetables on Sunday", "Cook rice in bulk"],
-  "key_insights": {{"avg_prep_time_mins": 25, "picky_friendly_meals": 18, "ingredient_reuse_count": 8, "healthier_options": 19, "budget_notes": "Seasonal ingredients"}}
+  "meal_prep_tips": ["Prepara verduras el domingo", "Cocina arroz en cantidad"],
+  "key_insights": {{"avg_prep_time_mins": 25, "picky_friendly_meals": 18, "ingredient_reuse_count": 8, "healthier_options": 19, "budget_notes": "Ingredientes de temporada"}}
 }}"""
 
     message = client.messages.create(
