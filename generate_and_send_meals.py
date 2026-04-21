@@ -15,14 +15,21 @@ from anthropic import Anthropic
 
 # Load credentials: try local file first, then environment variable (Railway)
 _creds_file = os.path.expanduser("~/.claude/credentials/mealplanner-gcp.json")
-if not os.path.exists(_creds_file) and os.environ.get("GCP_CREDENTIALS"):
-    import tempfile
-    _tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
-    _tmp.write(os.environ.get("GCP_CREDENTIALS"))
-    _tmp.close()
-    CREDS_FILE = _tmp.name
-else:
-    CREDS_FILE = _creds_file
+CREDS_FILE = _creds_file
+
+if not os.path.exists(_creds_file):
+    _gcp_creds = os.environ.get("GCP_CREDENTIALS", "").strip()
+    if _gcp_creds:
+        import tempfile
+        _tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
+        _tmp.write(_gcp_creds)
+        _tmp.close()
+        CREDS_FILE = _tmp.name
+    else:
+        print("❌ ERROR: GCP credentials not found")
+        print("   Local: ~/.claude/credentials/mealplanner-gcp.json")
+        print("   Railway: Set GCP_CREDENTIALS variable with JSON content")
+        exit(1)
 
 SPREADSHEET_ID = "1O6DC-6u5Y642c1v8LkwSYkj9lBGDy_szSLnM0PfucFM"
 
