@@ -65,6 +65,26 @@ RECIPE_GUIDELINES = """
 """
 
 
+def _render_meal(meal) -> str:
+    """Render meal name + nutrition info or fallback to string."""
+    if isinstance(meal, dict) and "name" in meal:
+        name = meal.get("name", "")
+        kcal = meal.get("kcal", "?")
+        prot = meal.get("prot_g", "?")
+        carb = meal.get("carb_g", "?")
+        fat = meal.get("fat_g", "?")
+        info = f"<small style='color:#777;display:block;margin-top:3px;font-size:12px;'>{kcal} kcal · Prot {prot}g · Carb {carb}g · Gra {fat}g</small>"
+        return f"{name}{info}"
+    return str(meal) if meal else ""
+
+
+def _meal_name(meal) -> str:
+    """Extract meal name from structured recipe or plain string."""
+    if isinstance(meal, dict) and "name" in meal:
+        return meal.get("name", "")
+    return str(meal) if meal else ""
+
+
 def build_html_email(plan: dict) -> str:
     """Build HTML email from meal plan."""
     params = plan["parameters"]
@@ -77,9 +97,9 @@ def build_html_email(plan: dict) -> str:
     table_rows = ""
     for day_key, meals in meal_plan.items():
         day_name = DAY_NAMES.get(day_key, day_key.capitalize())
-        bf = meals.get("breakfast", "")
-        ln = meals.get("lunch", "")
-        dn = meals.get("dinner", "")
+        bf = _render_meal(meals.get("breakfast", ""))
+        ln = _render_meal(meals.get("lunch", ""))
+        dn = _render_meal(meals.get("dinner", ""))
         table_rows += f"""
         <tr>
           <td style="font-weight:bold;background:#f9f4ee;">{day_name}</td>
@@ -226,19 +246,20 @@ REGLAS DE GENERACIÓN:
 8. Reutiliza ingredientes entre comidas para minimizar lista de compras
 9. Incluye porciones apropiadas para {family_size} personas
 10. Todas las recetas deben ser auténtico estilo LatAm (Argentina, México, Colombia, Perú)
+11. CADA RECETA INCLUYE DATOS NUTRICIONALES: estimaciones razonables por porción (kcal, proteínas, carbohidratos, grasas)
 
 CRÍTICO: Retorna SOLO JSON crudo (sin markdown, sin bloques de código, sin acentos graves, sin texto extra). Comienza inmediatamente con {{ y termina con }}. Cada receta es una cadena CORTA (máx 8 palabras).
 
 Formato de ejemplo (sigue exactamente):
 {{
   "meal_plan": {{
-    "monday": {{"breakfast": "Huevos revueltos con pan tostado", "lunch": "Arroz con pollo y verduras", "dinner": "Pechuga a la parrilla con papas"}},
-    "tuesday": {{"breakfast": "...", "lunch": "...", "dinner": "..."}},
-    "wednesday": {{"breakfast": "...", "lunch": "...", "dinner": "..."}},
-    "thursday": {{"breakfast": "...", "lunch": "...", "dinner": "..."}},
-    "friday": {{"breakfast": "...", "lunch": "...", "dinner": "..."}},
-    "saturday": {{"breakfast": "...", "lunch": "...", "dinner": "..."}},
-    "sunday": {{"breakfast": "...", "lunch": "...", "dinner": "..."}}
+    "monday": {{"breakfast": {{"name": "Huevos revueltos con pan tostado", "kcal": 320, "prot_g": 18, "carb_g": 22, "fat_g": 14}}, "lunch": {{"name": "Arroz con pollo y verduras", "kcal": 520, "prot_g": 35, "carb_g": 55, "fat_g": 10}}, "dinner": {{"name": "Pechuga a la parrilla con papas", "kcal": 380, "prot_g": 42, "carb_g": 8, "fat_g": 9}}}},
+    "tuesday": {{"breakfast": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}, "lunch": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}, "dinner": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}}},
+    "wednesday": {{"breakfast": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}, "lunch": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}, "dinner": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}}},
+    "thursday": {{"breakfast": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}, "lunch": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}, "dinner": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}}},
+    "friday": {{"breakfast": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}, "lunch": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}, "dinner": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}}},
+    "saturday": {{"breakfast": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}, "lunch": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}, "dinner": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}}},
+    "sunday": {{"breakfast": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}, "lunch": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}, "dinner": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}}}
   }},
   "shopping_list": {{"produce": ["tomate", "cebolla"], "proteins": ["pollo"], "dairy": ["queso"], "pantry": ["arroz"], "frozen": [], "other": []}},
   "meal_prep_tips": ["Prepara verduras el domingo", "Cocina arroz en cantidad"],
@@ -470,7 +491,7 @@ def main():
                 if "last_recipes" in col_map:
                     meals = []
                     for day, meals_day in plan_data["meal_plan"].items():
-                        meals.extend([meals_day.get("breakfast", ""), meals_day.get("lunch", ""), meals_day.get("dinner", "")])
+                        meals.extend([_meal_name(meals_day.get("breakfast", "")), _meal_name(meals_day.get("lunch", "")), _meal_name(meals_day.get("dinner", ""))])
                     meals_str = ", ".join([m for m in meals if m])
                     update_sheet_cell(sheets, row_idx, col_to_letter(col_map.get("last_recipes", 0)), meals_str)
 
