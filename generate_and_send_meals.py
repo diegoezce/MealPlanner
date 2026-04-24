@@ -66,14 +66,15 @@ RECIPE_GUIDELINES = """
 
 
 def _render_meal(meal) -> str:
-    """Render meal name + nutrition info or fallback to string."""
+    """Render meal name + prep time + nutrition info or fallback to string."""
     if isinstance(meal, dict) and "name" in meal:
         name = meal.get("name", "")
+        prep_mins = meal.get("prep_mins", "?")
         kcal = meal.get("kcal", "?")
         prot = meal.get("prot_g", "?")
         carb = meal.get("carb_g", "?")
         fat = meal.get("fat_g", "?")
-        info = f"<small style='color:#777;display:block;margin-top:3px;font-size:12px;'>{kcal} kcal · Prot {prot}g · Carb {carb}g · Gra {fat}g</small>"
+        info = f"<small style='color:#777;display:block;margin-top:3px;font-size:12px;'>⏱ {prep_mins} min · {kcal} kcal · Prot {prot}g · Carb {carb}g · Gra {fat}g</small>"
         return f"{name}{info}"
     return str(meal) if meal else ""
 
@@ -83,6 +84,38 @@ def _meal_name(meal) -> str:
     if isinstance(meal, dict) and "name" in meal:
         return meal.get("name", "")
     return str(meal) if meal else ""
+
+
+def _build_recipe_cards(meal_plan: dict, day_names: dict) -> str:
+    """Build recipe detail cards HTML for all meals."""
+    cards_html = ""
+    meal_type_labels = {"breakfast": "Desayuno", "lunch": "Almuerzo", "dinner": "Cena"}
+
+    for day_key, meals in meal_plan.items():
+        day_name = day_names.get(day_key, day_key.capitalize())
+
+        for meal_type, meal in meals.items():
+            if not isinstance(meal, dict) or "name" not in meal:
+                continue
+
+            meal_label = meal_type_labels.get(meal_type, meal_type.capitalize())
+            recipe_name = meal.get("name", "")
+            prep_mins = meal.get("prep_mins", "?")
+            steps = meal.get("steps", [])
+
+            steps_html = ""
+            for i, step in enumerate(steps, 1):
+                steps_html += f"<li style='margin-bottom:6px;'><strong>{i}.</strong> {step}</li>"
+
+            cards_html += f"""
+        <div style="background:#f9f4ee;border-radius:8px;padding:16px;margin-bottom:16px;border-left:4px solid #2c6e49;">
+          <p style="margin:0 0 8px;color:#2c6e49;font-weight:bold;font-size:14px;">{day_name} — {meal_label}</p>
+          <p style="margin:0 0 8px;font-weight:bold;font-size:15px;">{recipe_name}</p>
+          <p style="margin:0 0 12px;color:#666;font-size:13px;">⏱ <strong>{prep_mins} minutos</strong></p>
+          <ol style="margin:0;padding-left:20px;font-size:13px;">{steps_html}</ol>
+        </div>"""
+
+    return cards_html
 
 
 def build_html_email(plan: dict) -> str:
@@ -118,6 +151,9 @@ def build_html_email(plan: dict) -> str:
 
     # Tips
     tips_html = "".join(f"<li style='margin-bottom:8px;'>{tip}</li>" for tip in tips)
+
+    # Recipe detail cards
+    recipes_html = _build_recipe_cards(meal_plan, DAY_NAMES)
 
     html = f"""<!DOCTYPE html>
 <html>
@@ -161,6 +197,9 @@ def build_html_email(plan: dict) -> str:
 <ul>
 {tips_html}
 </ul>
+
+<h3>📖 Recetas Detalladas</h3>
+{recipes_html}
 
 <h3>📊 Insights del Plan</h3>
 <div class="insight-box">
@@ -247,19 +286,20 @@ REGLAS DE GENERACIÓN:
 9. Incluye porciones apropiadas para {family_size} personas
 10. Todas las recetas deben ser auténtico estilo LatAm (Argentina, México, Colombia, Perú)
 11. CADA RECETA INCLUYE DATOS NUTRICIONALES: estimaciones razonables por porción (kcal, proteínas, carbohidratos, grasas)
+12. CADA RECETA INCLUYE: tiempo de preparación en minutos y 3-5 pasos CORTOS (máximo 10 palabras cada uno)
 
 CRÍTICO: Retorna SOLO JSON crudo (sin markdown, sin bloques de código, sin acentos graves, sin texto extra). Comienza inmediatamente con {{ y termina con }}. Cada receta es una cadena CORTA (máx 8 palabras).
 
 Formato de ejemplo (sigue exactamente):
 {{
   "meal_plan": {{
-    "monday": {{"breakfast": {{"name": "Huevos revueltos con pan tostado", "kcal": 320, "prot_g": 18, "carb_g": 22, "fat_g": 14}}, "lunch": {{"name": "Arroz con pollo y verduras", "kcal": 520, "prot_g": 35, "carb_g": 55, "fat_g": 10}}, "dinner": {{"name": "Pechuga a la parrilla con papas", "kcal": 380, "prot_g": 42, "carb_g": 8, "fat_g": 9}}}},
-    "tuesday": {{"breakfast": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}, "lunch": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}, "dinner": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}}},
-    "wednesday": {{"breakfast": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}, "lunch": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}, "dinner": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}}},
-    "thursday": {{"breakfast": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}, "lunch": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}, "dinner": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}}},
-    "friday": {{"breakfast": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}, "lunch": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}, "dinner": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}}},
-    "saturday": {{"breakfast": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}, "lunch": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}, "dinner": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}}},
-    "sunday": {{"breakfast": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}, "lunch": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}, "dinner": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0}}}}
+    "monday": {{"breakfast": {{"name": "Huevos revueltos con pan tostado", "kcal": 320, "prot_g": 18, "carb_g": 22, "fat_g": 14, "prep_mins": 10, "steps": ["Calentar sartén a fuego medio.", "Batir huevos con sal.", "Cocinar revolviendo 3 minutos.", "Servir con pan tostado."]}}, "lunch": {{"name": "Arroz con pollo y verduras", "kcal": 520, "prot_g": 35, "carb_g": 55, "fat_g": 10, "prep_mins": 25, "steps": ["Dorar pollo trozado.", "Cocinar arroz 15 minutos.", "Agregar verduras picadas.", "Sazonar al gusto."]}}, "dinner": {{"name": "Pechuga a la parrilla con papas", "kcal": 380, "prot_g": 42, "carb_g": 8, "fat_g": 9, "prep_mins": 20, "steps": ["Marinar pechuga 10 minutos.", "Cocinar en parrilla 8 minutos.", "Hornear papas 15 minutos.", "Servir caliente."]}}}},
+    "tuesday": {{"breakfast": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0, "prep_mins": 0, "steps": ["...", "..."]}}, "lunch": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0, "prep_mins": 0, "steps": ["...", "..."]}}, "dinner": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0, "prep_mins": 0, "steps": ["...", "..."]}}}},
+    "wednesday": {{"breakfast": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0, "prep_mins": 0, "steps": ["...", "..."]}}, "lunch": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0, "prep_mins": 0, "steps": ["...", "..."]}}, "dinner": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0, "prep_mins": 0, "steps": ["...", "..."]}}}},
+    "thursday": {{"breakfast": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0, "prep_mins": 0, "steps": ["...", "..."]}}, "lunch": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0, "prep_mins": 0, "steps": ["...", "..."]}}, "dinner": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0, "prep_mins": 0, "steps": ["...", "..."]}}}},
+    "friday": {{"breakfast": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0, "prep_mins": 0, "steps": ["...", "..."]}}, "lunch": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0, "prep_mins": 0, "steps": ["...", "..."]}}, "dinner": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0, "prep_mins": 0, "steps": ["...", "..."]}}}},
+    "saturday": {{"breakfast": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0, "prep_mins": 0, "steps": ["...", "..."]}}, "lunch": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0, "prep_mins": 0, "steps": ["...", "..."]}}, "dinner": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0, "prep_mins": 0, "steps": ["...", "..."]}}}},
+    "sunday": {{"breakfast": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0, "prep_mins": 0, "steps": ["...", "..."]}}, "lunch": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0, "prep_mins": 0, "steps": ["...", "..."]}}, "dinner": {{"name": "...", "kcal": 0, "prot_g": 0, "carb_g": 0, "fat_g": 0, "prep_mins": 0, "steps": ["...", "..."]}}}}
   }},
   "shopping_list": {{"produce": ["tomate", "cebolla"], "proteins": ["pollo"], "dairy": ["queso"], "pantry": ["arroz"], "frozen": [], "other": []}},
   "meal_prep_tips": ["Prepara verduras el domingo", "Cocina arroz en cantidad"],
@@ -268,7 +308,7 @@ Formato de ejemplo (sigue exactamente):
 
     message = client.messages.create(
         model="claude-haiku-4-5-20251001",
-        max_tokens=3000,
+        max_tokens=5000,
         messages=[{"role": "user", "content": prompt}],
     )
 
