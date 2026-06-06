@@ -192,61 +192,106 @@ def generate_meal_plan(client: Anthropic, row_data: dict, last_recipes: str) -> 
     restrictions = row_data.get("restrictions", "")
     picky_eaters = row_data.get("picky_eaters", "")
     cooking_time = row_data.get("cooking_time", "")
-    preferences = row_data.get("preferences", "")
+    meal_prep = row_data.get("meal_prep", "")
+    food_preferences = row_data.get("food_preferences", row_data.get("preferences", ""))
+    healthy_goal = row_data.get("healthy_goal", "")
+    requested_meals = row_data.get("requested_meals", "")
 
     avoid_recipes = ""
     if last_recipes:
-        avoid_recipes = f"\n**IMPORTANT: Never repeat these meals from last week:**\n{last_recipes}"
+        avoid_recipes = f"\n**IMPORTANTE: Nunca repetir estas comidas de la semana pasada:**\n{last_recipes}"
 
-    # Interpret dietary restrictions
-    dietary_notes = ""
-    if restrictions:
-        restrictions_lower = restrictions.lower()
-        if "celiaco" in restrictions_lower or "sin gluten" in restrictions_lower or "gluten-free" in restrictions_lower:
-            dietary_notes += "\n- Todas las recetas DEBEN SER SIN GLUTEN (sin trigo, pasta regular, etc.)"
-        if "diabetico" in restrictions_lower or "diabetic" in restrictions_lower:
-            dietary_notes += "\n- Enfócate en alimentos BAJO ÍNDICE GLUCÉMICO, evita azúcares refinados y carbohidratos blancos"
-        if "vegetarian" in restrictions_lower or "vegetariana" in restrictions_lower:
-            dietary_notes += "\n- Solo proteínas vegetarianas (huevos, queso, legumbres, frutos secos)"
-        if "vegana" in restrictions_lower or "vegan" in restrictions_lower:
-            dietary_notes += "\n- Solo proteínas veganas (legumbres, frutos secos, soya, semillas)"
-        if "alergia" in restrictions_lower or "allergy" in restrictions_lower or "alérgico" in restrictions_lower:
-            dietary_notes += f"\n- Evita alérgenos comunes mencionados: {restrictions}"
-        else:
-            dietary_notes += f"\n- Restricciones: {restrictions}"
+    prompt = f"""Eres un planificador familiar de comidas especializado en hogares de Latinoamérica.
 
-    health_preference = ""
-    if preferences:
-        preferences_lower = preferences.lower()
-        if "saludable" in preferences_lower or "healthy" in preferences_lower or "liviana" in preferences_lower or "light" in preferences_lower:
-            health_preference = "\n- PRIORIZA OPCIONES SALUDABLES: a la parrilla, al horno, al vapor (evita frituras, exceso de aceite, comida rápida)"
-        if "casera" in preferences_lower or "home-style" in preferences_lower:
-            health_preference += "\n- Enfócate en recetas caseras, estilo comida LatAm tradicional"
+Tu objetivo NO es generar recetas aleatorias ni combinaciones genéricas de ingredientes.
 
-    prompt = f"""Genera un plan de comidas personalizado de 7 días estilo LatAm en formato JSON.
+Tu objetivo es crear un plan semanal que una familia real reconocería, cocinaría y disfrutaría.
 
-PERFIL DE FAMILIA:
-- Cantidad: {family_size} personas
+## Contexto recibido
+
+- Cantidad de personas: {family_size}
 - Edades: {ages}
-- Come poco: {picky_eaters}
-- Tiempo disponible para cocinar: {cooking_time}{dietary_notes}{health_preference}
+- Restricciones alimentarias: {restrictions}
+- Picky eaters: {picky_eaters}
+- Tiempo disponible para cocinar: {cooking_time}
+- Hacen viandas: {meal_prep}
+- Preferencias de comida: {food_preferences}
+- Desean comer más saludable: {healthy_goal}
+- Comidas solicitadas para esta semana: {requested_meals}
 
-{RECIPE_GUIDELINES}
+---
 
+## Reglas importantes
+
+### 1. Utiliza platos reales
+
+Los nombres de las comidas deben ser platos reconocibles.
+
+Buenos ejemplos:
+- Milanesas con puré
+- Tallarines con salsa boloñesa
+- Pastel de papa
+- Pollo al horno con papas
+- Tacos de carne
+- Hamburguesas caseras
+- Empanadas al horno
+- Albóndigas con arroz
+- Arroz con pollo
+- Guiso de lentejas
+
+Malos ejemplos:
+- Carne molida con tomate
+- Pollo con verduras
+- Carne con salsa
+- Pescado con acompañamiento
+- Carne con arroz
+
+Nunca describas comidas únicamente como ingredientes combinados.
+
+### 2. Pensar como una familia real
+
+El plan debe responder:
+- ¿Qué cocinaría una familia ocupada?
+- ¿Qué comerían los niños?
+- ¿Qué platos tienen alta aceptación?
+- ¿Qué recetas pueden reutilizar ingredientes?
+
+Evita comidas exóticas o poco habituales.
+
+### 3. Respetar restricciones
+
+Las restricciones y alimentos rechazados tienen prioridad absoluta.
+
+Si alguien indicó que no come pescado, no incluir pescado.
+
+Si existe una alergia, excluir completamente los ingredientes relacionados.
+
+### 4. Reutilización inteligente
+
+Minimiza desperdicios.
+
+Ejemplos:
+- Cocinar salsa boloñesa extra y reutilizarla.
+- Usar pollo preparado para varias comidas.
+- Reutilizar verduras cortadas.
+- Aprovechar arroz o puré preparados previamente.
+
+### 5. Adaptar al tiempo disponible
+
+Menos de 20 minutos: recetas extremadamente simples.
+20-40 minutos: comidas familiares estándar.
+Más de 40 minutos: permitir platos más elaborados.
+
+### 6. Si hacen viandas
+
+Priorizar almuerzos que se transporten bien, se recalienten bien y mantengan sabor y textura.
+
+### 7. Comida latinoamericana
+
+Asume una familia latinoamericana promedio. Utiliza ingredientes comunes y accesibles. Evita recetas excesivamente gourmet.
+
+---
 {avoid_recipes}
-
-REGLAS DE GENERACIÓN:
-1. Crea recetas ORIGINALES adaptadas a sus necesidades dietéticas/salud específicas
-2. Cada receta debe respetar todas las restricciones y preferencias
-3. Para celíaco: usa alternativas sin gluten
-4. Para diabético: alimentos bajos en GI, carbohidratos controlados
-5. Para niños o que comen poco: sabores simples, suaves, familiares
-6. Mantén comidas bajo 20 minutos si el tiempo de cocina es limitado
-7. Sin repetir recetas dentro de los 7 días
-8. Reutiliza ingredientes entre comidas para minimizar lista de compras
-9. Incluye porciones apropiadas para {family_size} personas
-10. Todas las recetas deben ser auténtico estilo LatAm (Argentina, México, Colombia, Perú)
-11. CADA RECETA INCLUYE DATOS NUTRICIONALES: estimaciones razonables por porción (kcal, proteínas, carbohidratos, grasas)
 
 CRÍTICO: Retorna SOLO JSON crudo (sin markdown, sin bloques de código, sin acentos graves, sin texto extra). Comienza inmediatamente con {{ y termina con }}. Cada receta es una cadena CORTA (máx 8 palabras).
 
@@ -412,8 +457,14 @@ def main():
             col_map["picky_eaters"] = i
         elif "cooking" in h_lower or "tiempo" in h_lower:
             col_map["cooking_time"] = i
-        elif "preference" in h_lower or "prefieren" in h_lower:
-            col_map["preferences"] = i
+        elif "preference" in h_lower or "prefieren" in h_lower or "preferencia" in h_lower:
+            col_map["food_preferences"] = i
+        elif "vianda" in h_lower or "meal prep" in h_lower:
+            col_map["meal_prep"] = i
+        elif "saludable" in h_lower or "healthy goal" in h_lower or "objetivo" in h_lower:
+            col_map["healthy_goal"] = i
+        elif "solicitad" in h_lower or "requested meal" in h_lower or "comidas esta semana" in h_lower:
+            col_map["requested_meals"] = i
         elif "email" in h_lower or "contact" in h_lower or "envio" in h_lower:
             col_map["email"] = i
         elif "last recipe" in h_lower or "ultimas recetas" in h_lower:
@@ -450,13 +501,20 @@ def main():
             errors += 1
             continue
 
+        def _col(key):
+            idx = col_map.get(key)
+            return row[idx].strip() if idx is not None and len(row) > idx else ""
+
         row_data = {
-            "family_size": row[col_map.get("family_size", -1)].strip() if col_map.get("family_size") is not None and len(row) > col_map.get("family_size", -1) else "",
-            "ages": row[col_map.get("ages", -1)].strip() if col_map.get("ages") is not None and len(row) > col_map.get("ages", -1) else "",
-            "restrictions": row[col_map.get("restrictions", -1)].strip() if col_map.get("restrictions") is not None and len(row) > col_map.get("restrictions", -1) else "",
-            "picky_eaters": row[col_map.get("picky_eaters", -1)].strip() if col_map.get("picky_eaters") is not None and len(row) > col_map.get("picky_eaters", -1) else "",
-            "cooking_time": row[col_map.get("cooking_time", -1)].strip() if col_map.get("cooking_time") is not None and len(row) > col_map.get("cooking_time", -1) else "",
-            "preferences": row[col_map.get("preferences", -1)].strip() if col_map.get("preferences") is not None and len(row) > col_map.get("preferences", -1) else "",
+            "family_size": _col("family_size"),
+            "ages": _col("ages"),
+            "restrictions": _col("restrictions"),
+            "picky_eaters": _col("picky_eaters"),
+            "cooking_time": _col("cooking_time"),
+            "food_preferences": _col("food_preferences"),
+            "meal_prep": _col("meal_prep"),
+            "healthy_goal": _col("healthy_goal"),
+            "requested_meals": _col("requested_meals"),
         }
 
         last_recipes = row[col_map.get("last_recipes", -1)] if col_map.get("last_recipes") is not None and len(row) > col_map.get("last_recipes", -1) else ""
