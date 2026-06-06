@@ -291,6 +291,138 @@ Priorizar almuerzos que se transporten bien, se recalienten bien y mantengan sab
 Asume una familia latinoamericana promedio. Utiliza ingredientes comunes y accesibles. Evita recetas excesivamente gourmet.
 
 ---
+
+## Reglas de realismo familiar
+
+Antes de generar el plan, actúa como una madre o padre ocupado que organiza una semana completa de comidas.
+
+No optimices por variedad máxima.
+
+Optimiza por:
+- simplicidad
+- practicidad
+- reutilización
+- costo razonable
+- aceptación familiar
+
+---
+
+## Restricción de proteínas
+
+No utilices más de 3 o 4 proteínas principales durante toda la semana.
+
+Por ejemplo: pollo, carne molida, huevos, atún.
+
+Evita semanas con lomo, costilla, chuletas, asado, pescado, carne molida, pollo y atún todo en la misma semana.
+
+Una familia real suele repetir ingredientes.
+
+---
+
+## Restricción de tiempo
+
+Respeta estrictamente el tiempo seleccionado.
+
+Menos de 20 minutos:
+- sandwiches
+- wraps
+- ensaladas simples
+- huevos
+- hamburguesas
+- tacos rápidos
+- pasta simple
+- pollo previamente preparado
+
+NO utilizar:
+- pechugas rellenas
+- caldos largos
+- asados
+- costillas
+- recetas elaboradas
+
+20-40 minutos: recetas familiares normales.
+
+Más de 40 minutos: permitir preparaciones complejas.
+
+---
+
+## Construcción de la semana
+
+La semana debe sentirse conectada.
+
+Ejemplo:
+- Lunes: preparar carne molida
+- Martes: reutilizar carne molida
+- Miércoles: reutilizar verduras cortadas
+- Jueves: reutilizar arroz preparado
+
+Las comidas no deben parecer seleccionadas al azar.
+
+---
+
+## Catálogo mental de recetas
+
+Selecciona principalmente comidas familiares conocidas:
+- milanesas con puré
+- hamburguesas caseras
+- tacos de carne
+- arroz con pollo
+- albóndigas
+- fideos con salsa boloñesa
+- pastel de papa
+- tortilla de papas
+- pollo al horno con verduras
+- wraps de pollo
+- empanadas
+- ensaladas completas
+
+Evita inventar platos.
+
+Evita nombres genéricos.
+
+Incorrecto: carne con tomate, pollo con verduras, carne con salsa.
+
+Correcto: salsa boloñesa, albóndigas, tacos de carne, pollo salteado estilo casero.
+
+---
+
+## Validación interna
+
+Antes de responder revisa:
+1. ¿El tiempo promedio coincide con el seleccionado?
+2. ¿Hay más de 4 proteínas principales?
+3. ¿Las comidas parecen platos reales?
+4. ¿La lista de compras coincide con el menú?
+5. ¿Hay reutilización de ingredientes?
+6. ¿Una familia latinoamericana cocinaría realmente esta semana?
+
+Si alguna respuesta es no, corrige el plan antes de mostrarlo.
+
+---
+
+## Lista de compras
+
+Obligatorio incluir cantidades estimadas.
+
+No mostrar: tomate, cebolla, pollo.
+
+Mostrar: tomate: 8 unidades, cebolla: 4 unidades, pechuga de pollo: 2 kg.
+
+La lista debe permitir realizar una compra real.
+
+---
+
+## Explicación del plan
+
+Antes del menú explicar brevemente:
+- qué información se analizó
+- qué objetivos se priorizaron
+- qué ingredientes se reutilizan
+- cómo se respetaron las restricciones
+
+El usuario debe sentir que el plan fue diseñado específicamente para su familia.
+
+---
 {avoid_recipes}
 
 CRÍTICO: Retorna SOLO JSON crudo (sin markdown, sin bloques de código, sin acentos graves, sin texto extra). Comienza inmediatamente con {{ y termina con }}. Cada receta es una cadena CORTA (máx 8 palabras).
